@@ -4,5 +4,6 @@ __pycache__/
 .checkpoints/
 input/*
 !input/.gitkeep
+!input/config_parametros_tablero.xlsx
 output/*
 !output/.gitkeep
