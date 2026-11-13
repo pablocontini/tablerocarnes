@@ -2,7 +2,10 @@
 import ast
 import io
 import os
+import tempfile
+import time
 import types
+import warnings
 from pathlib import Path
 
 import cloudpickle
@@ -20,6 +23,16 @@ def _recurso_exportacion(value):
     return False
 
 
+def _reintentar_acceso(operation):
+    for attempt in range(7):
+        try:
+            return operation()
+        except PermissionError:
+            if attempt == 6:
+                raise
+            time.sleep(0.1 * 2 ** attempt)
+
+
 def guardar(path, state):
     # Los bloques with dejan writer/f y los objetos auxiliares de openpyxl
     # en el namespace. Los archivos ya exportados se mantienen en disco.
@@ -28,16 +41,23 @@ def guardar(path, state):
                           if not _recurso_exportacion(value)}
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix('.tmp')
+    # Un temporal distinto por guardado evita colisiones con archivos previos.
+    descriptor, filename = tempfile.mkstemp(prefix=path.stem + '-', suffix='.tmp', dir=path.parent)
+    temporary = Path(filename)
     try:
-        with temporary.open('wb') as stream:
+        with os.fdopen(descriptor, 'wb') as stream:
             cloudpickle.dump(state, stream, protocol=5)
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temporary, path)
+        # Windows puede bloquear brevemente el destino (p. ej. sincronización).
+        # Reintentar el renombrado sin volver a serializar las tablas.
+        _reintentar_acceso(lambda: os.replace(temporary, path))
     finally:
         if temporary.exists():
-            temporary.unlink()
+            try:
+                _reintentar_acceso(temporary.unlink)
+            except PermissionError:
+                warnings.warn(f'No se pudo limpiar el temporal del checkpoint: {temporary}')
 
 
 def restaurar(path, cells, context):
