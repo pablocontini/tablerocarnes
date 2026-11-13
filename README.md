@@ -19,6 +19,18 @@ Las bases esperadas son autorizaciones, capacidad de cámaras/corrales, existenc
 
 En la hoja `Rutas`, usá `input` y `output` para `INPUT_DIR` y `OUTPUT_DIR`, o rutas absolutas de Windows. Las rutas antiguas que empiezan con `/content/` se convierten automáticamente a esas carpetas locales. Las rutas relativas del Excel se resuelven desde la carpeta del proyecto. Se conservan `NOMBRE_EXCEL_SALIDA`, `NOMBRE_JSON_SALIDA` y `NOMBRE_HTML_SALIDA`. El segundo notebook usa la misma carpeta de salida para leer sus entradas y guardar el HTML.
 
+## Especies por establecimiento
+
+El padrón SIOCAL sigue definiendo qué establecimientos integran el tablero. El campo `Especies` prioriza las especies observadas para cada establecimiento RUCA en **todo el histórico de los reportes de faena cargados**, incluidas sus partes. No se recorta a `Meses_Procesar` ni al mes seleccionado en Macro. Por eso expresa actividad observada en ese histórico, no una habilitación para faenar ni actividad exclusiva del mes consultado.
+
+Se consideran registros no eliminados (`Eliminada` igual a 0, NO o False), con fecha y RUCA válidos y `Cantidad Detalle Corte` positiva. Los registros intervenidos se conservan: la intervención no equivale a eliminación. La identificación de especies no depende de poder convertir el corte a cabezas. Se unifican los nombres al singular para los filtros (`Bovinos` → `Bovino`, `Equidos` → `Equino`, `Aves` → `Avicola`); también se admiten bubalinos y camélidos, y se conservan las demás denominaciones del reporte, como `Conejos y Piliferos`.
+
+Si una planta no tiene especies en faena válida, se usan las columnas `Especie …` marcadas con `SI` en el padrón. Si tampoco hay especies declaradas, el campo queda vacío. No se unen las especies declaradas con las observadas: para una planta con faena, se muestran las observadas. No se incorporan automáticamente establecimientos ajenos al padrón.
+
+La columna `Fuente Especies` del Excel y de Control identifica `Faena`, `Padrón SIOCAL` o `Sin datos`. El JSON incluye el mismo dato en `fuente_especies`. Control, Macro, Planta y la aplicabilidad bovina de los indicadores mensuales comparten las especies resueltas.
+
+Después de actualizar este código o cambiar reportes, ejecutá el flujo completo **sin `--reanudar`** para recalcular Excel, JSON y HTML. Ejecutar solo `--etapa html` no vuelve a determinar las especies desde las bases.
+
 ## Ejecutar por consola
 
 ### Bases divididas en partes
